@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Auto Pilot</string>
+    <string name="ip_address">10.0.2.2</string>
+    <string name="port_number">1357</string>
+    <string name="ip_address_txt">IP Address</string>
+    <string name="port_number_txt">Port Number</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+</resources>
