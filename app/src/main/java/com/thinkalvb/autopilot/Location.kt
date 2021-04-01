@@ -12,6 +12,7 @@ private const val TAG = "Pilot_Location"
 
 class Location(activity: Activity) {
     private var isAvailable = false
+    private var mLastBroadcastTime = System.currentTimeMillis()
     private var mPosition: DoubleArray = DoubleArray(3)
     private lateinit var mFusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var mLocationRequest: LocationRequest
@@ -40,6 +41,9 @@ class Location(activity: Activity) {
                         mPosition[1] = longitude
                         mPosition[2] = altitude
                         broadcastLocation()
+                    } else {
+                        val mCurrentTime = System.currentTimeMillis()
+                        if (mCurrentTime - mLastBroadcastTime > 5000) broadcastLocation()
                     }
                 }
             }
@@ -53,7 +57,9 @@ class Location(activity: Activity) {
             locationStr += mPosition[0].toString() + " "
             locationStr += mPosition[1].toString() + " "
             locationStr += mPosition[2].toString() + "\t"
+
             Broadcaster.sendData(locationStr)
+            mLastBroadcastTime = System.currentTimeMillis()
             Log.d(TAG, locationStr)
         }
     }

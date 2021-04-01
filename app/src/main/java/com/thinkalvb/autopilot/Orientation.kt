@@ -13,6 +13,7 @@ private const val TAG = "Pilot_Orientation"
 
 class Orientation(activity: Activity) : SensorEventListener {
     private var isAvailable = false
+    private var mLastBroadcastTime = System.currentTimeMillis()
     private var mOrientation: IntArray = IntArray(3)
     private var mSensorManager: SensorManager = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private var mGyroscope: Sensor? = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
@@ -59,6 +60,9 @@ class Orientation(activity: Activity) : SensorEventListener {
                 mOrientation[1] = orientationY
                 mOrientation[2] = orientationZ
                 broadcastOrientation()
+            } else {
+                val mCurrentTime = System.currentTimeMillis()
+                if (mCurrentTime - mLastBroadcastTime > 5000) broadcastOrientation()
             }
         }
     }
@@ -69,7 +73,9 @@ class Orientation(activity: Activity) : SensorEventListener {
             orientationStr += mOrientation[0].toString() + " "
             orientationStr += mOrientation[1].toString() + " "
             orientationStr += mOrientation[2].toString() + "\t"
+
             Broadcaster.sendData(orientationStr)
+            mLastBroadcastTime = System.currentTimeMillis()
             Log.d(TAG, orientationStr)
         }
     }

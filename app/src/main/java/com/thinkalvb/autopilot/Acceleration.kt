@@ -12,6 +12,7 @@ private const val TAG = "Pilot_Acceleration"
 
 class Acceleration(activity: Activity) : SensorEventListener {
     private var isAvailable = false
+    private var mLastBroadcastTime = System.currentTimeMillis()
     private var mAcceleration: IntArray = IntArray(3)
     private var mSensorManager: SensorManager = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private var mAccelerometer: Sensor? = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
@@ -47,6 +48,9 @@ class Acceleration(activity: Activity) : SensorEventListener {
                 mAcceleration[1] = accelerationY
                 mAcceleration[2] = accelerationZ
                 broadcastAcceleration()
+            } else {
+                val mCurrentTime = System.currentTimeMillis()
+                if (mCurrentTime - mLastBroadcastTime > 5000) broadcastAcceleration()
             }
         }
     }
@@ -57,7 +61,9 @@ class Acceleration(activity: Activity) : SensorEventListener {
             accelerationStr += mAcceleration[0].toString() + " "
             accelerationStr += mAcceleration[1].toString() + " "
             accelerationStr += mAcceleration[2].toString() + "\t"
+
             Broadcaster.sendData(accelerationStr)
+            mLastBroadcastTime = System.currentTimeMillis()
             Log.d(TAG, accelerationStr)
         }
     }

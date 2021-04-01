@@ -26,9 +26,9 @@ class Commander (mDestinationIP: InetAddress, mDestinationPort: Int ) : Runnable
             try {
                 Log.d(TAG, "Waiting for Server")
                 mTcpSocket = Socket()
-                mTcpSocket.connect(mServerSocketAddress, 10000)
+                mTcpSocket.connect(mServerSocketAddress, 20000)
                 mTcpSocket.keepAlive = true
-                mTcpSocket.soTimeout = 15000
+                mTcpSocket.soTimeout = 60000
 
                 if(mTcpSocket.isConnected){
                     mTCPBufferIncoming = BufferedReader(InputStreamReader(mTcpSocket.getInputStream(), "UTF-8"))
