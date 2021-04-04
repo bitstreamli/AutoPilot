@@ -52,7 +52,7 @@ class Location(activity: Activity) {
     }
 
     private fun broadcastLocation() {
-        if(Commander.needToBroadcast){
+        if(Broadcaster.needToBroadcast){
             var locationStr = "\tLOC "
             locationStr += mPosition[0].toString() + " "
             locationStr += mPosition[1].toString() + " "

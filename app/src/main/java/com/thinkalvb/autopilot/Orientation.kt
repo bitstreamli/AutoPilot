@@ -68,7 +68,7 @@ class Orientation(activity: Activity) : SensorEventListener {
     }
 
     private fun broadcastOrientation() {
-        if(Commander.needToBroadcast){
+        if(Broadcaster.needToBroadcast){
             var orientationStr = "\tORT "
             orientationStr += mOrientation[0].toString() + " "
             orientationStr += mOrientation[1].toString() + " "

@@ -35,7 +35,7 @@ class Camera(activity: Activity) {
         override fun analyze(imageProxy: ImageProxy) {
             if(imageProxy.format == ImageFormat.YUV_420_888) {
                 val capturedFrame = toRGBA(imageProxy, imageProxy.image!!.width, imageProxy.image!!.height)
-                if(Commander.needToBroadcast) Broadcaster.sendFrame(capturedFrame!!)
+                if(Broadcaster.needToBroadcast) Broadcaster.sendFrame(capturedFrame!!)
             }
             imageProxy.close()
         }

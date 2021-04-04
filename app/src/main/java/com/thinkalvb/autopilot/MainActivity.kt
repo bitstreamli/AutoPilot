@@ -17,7 +17,6 @@ private const val TAG = "Pilot_MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var mUDPThread: Thread
-    private lateinit var mTCPThread: Thread
 
     private lateinit var mOrientation: Orientation
     private lateinit var mAcceleration: Acceleration
@@ -90,14 +89,9 @@ class MainActivity : AppCompatActivity() {
         val mBroadcaster = Broadcaster(ip, portNumber)
         mUDPThread = Thread(mBroadcaster)
         mUDPThread.start()
-
-        val mCommander = Commander(ip, portNumber)
-        mTCPThread= Thread(mCommander)
-        mTCPThread.start()
     }
 
     private fun stopNetworkService(){
-        mTCPThread.interrupt()
         mUDPThread.interrupt()
     }
 

@@ -56,7 +56,7 @@ class Acceleration(activity: Activity) : SensorEventListener {
     }
 
     private fun broadcastAcceleration() {
-        if(Commander.needToBroadcast) {
+        if(Broadcaster.needToBroadcast) {
             var accelerationStr = "\tACC "
             accelerationStr += mAcceleration[0].toString() + " "
             accelerationStr += mAcceleration[1].toString() + " "
