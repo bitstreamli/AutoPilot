@@ -16,6 +16,7 @@ private const val FRAME_BROADCAST_INTERVAL = 40
 private const val PROBE_INTERVAL = 5000
 private const val KEEP_ALIVE_TIMEOUT = 15000
 private const val RECEIVE_TIMEOUT = 5
+private const val READ_BUFFER_SIZE = 128
 
 class Broadcaster (private val mDestinationIP: InetAddress, private val mDestinationPort: Int ) : Runnable {
     private lateinit var mUdpSocket: DatagramSocket
@@ -35,12 +36,13 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
             mUdpSocket.soTimeout = RECEIVE_TIMEOUT
             Log.d(TAG, "Broadcaster Started on port ${mUdpSocket.localPort}")
         } catch (e: SocketException) {
-            //Log.d(TAG, "Socket Exception $e")
+            Log.d(TAG, "Socket Exception $e")
         } catch (e: IOException) {
-            //Log.d(TAG,"IO Exception $e")
+            Log.d(TAG,"IO Exception $e")
         } catch (e: Exception) {
-            //Log.d(TAG,"Exception $e")
+            Log.d(TAG,"Exception $e")
         }
+        if(!mUdpSocket.isConnected) return
 
         while(!Thread.currentThread().isInterrupted)
         {
@@ -50,18 +52,18 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
                 if(mRequiresFrameBroadcast) broadcastFrame()
                 receiveData()
             } catch (e: SocketException) {
-                //Log.d(TAG, "Socket Exception $e")
+                Log.d(TAG, "Socket Exception $e")
             } catch (e: IOException) {
-                //Log.d(TAG,"IO Exception $e")
+                Log.d(TAG,"IO Exception $e")
             } catch (e: Exception) {
-                //Log.d(TAG,"Exception $e")
+                Log.d(TAG,"Exception $e")
             }
         }
         Log.d(TAG, "Broadcaster Stopped")
     }
 
     private fun receiveData() {
-        val dataBuffer = ByteArray(128)
+        val dataBuffer = ByteArray(READ_BUFFER_SIZE)
         val incomingPacket = DatagramPacket(dataBuffer, dataBuffer.size)
         mUdpSocket.receive(incomingPacket)
         mLastReceiveTime = System.currentTimeMillis()

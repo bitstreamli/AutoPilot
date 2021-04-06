@@ -17,6 +17,7 @@ private const val TAG = "Pilot_MainActivity"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var mUDPThread: Thread
+    private lateinit var mBluetoothThread: Thread
 
     private lateinit var mOrientation: Orientation
     private lateinit var mAcceleration: Acceleration
@@ -86,9 +87,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startNetworkService(portNumber: Int, ip: InetAddress) {
-        val mBroadcaster = Broadcaster(ip, portNumber)
-        mUDPThread = Thread(mBroadcaster)
+        val broadcaster = Broadcaster(ip, portNumber)
+        mUDPThread = Thread(broadcaster)
         mUDPThread.start()
+
+        val bluetooth = Bluetooth()
+        bluetooth.startBluetooth()
+        mBluetoothThread = Thread(bluetooth)
+        mBluetoothThread.start()
     }
 
     private fun stopNetworkService(){
