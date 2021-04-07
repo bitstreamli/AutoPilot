@@ -7,13 +7,14 @@ import android.util.Log
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.lang.Exception
 import java.util.*
 
 private const val TAG = "Pilot_Bluetooth"
 private const val READ_BUFFER_SIZE = 128
-private val MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+private val MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-class Bluetooth() : Runnable {
+class Bluetooth : Runnable {
     private var isAvailable = false
     private var isConnected = false
 
@@ -35,7 +36,7 @@ class Bluetooth() : Runnable {
             val bondedDevices: Set<BluetoothDevice> = mBluetoothAdapter.bondedDevices
             if (bondedDevices.isNotEmpty()) {
                 Log.d(TAG, "Paired bluetooth devices found")
-                bondedDevices.forEach { bondedDevice -> if(bondedDevice.bondState == BluetoothDevice.BOND_BONDED) return bondedDevice}
+                bondedDevices.forEach { bondedDevice -> if(bondedDevice.bondState == BluetoothDevice.BOND_BONDED) return bondedDevice }
             }
         }
         return null
@@ -44,17 +45,29 @@ class Bluetooth() : Runnable {
     fun startBluetooth(): Boolean {
         val device = getDevice()
         if(device != null) {
+            mBluetoothAdapter!!.cancelDiscovery()
             try{
                 mBSocket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID)
-                Log.d(TAG, "Bluetooth socket created ${device.name}")
                 mBSocket.connect()
-                Log.d(TAG, "Bluetooth connected with RCV")
-                mOutputStream = mBSocket.outputStream
-                mInputStream = mBSocket.inputStream
                 isConnected = true
                 Log.d(TAG, "Bluetooth connected with RCV")
             } catch (e: IOException) {
                 Log.d(TAG, "IO Exception $e")
+                try{
+                    Log.d(TAG, "Starting bluetooth connect fallback strategy")
+                    val clazz = mBSocket.remoteDevice.javaClass
+                    val paramTypes = arrayOf<Class<*>>(Integer.TYPE)
+                    val m = clazz.getMethod("createRfcommSocket", *paramTypes)
+                    val fallbackSocket = m.invoke(mBSocket.remoteDevice, Integer.valueOf(1)) as BluetoothSocket
+                    fallbackSocket.connect()
+                    mBSocket = fallbackSocket
+                    isConnected = true
+                    Log.d(TAG, "Bluetooth connected with RCV")
+                } catch (e: Exception) { Log.d(TAG, "IO Exception $e") }
+            }
+            if (isConnected) {
+                mOutputStream = mBSocket.outputStream
+                mInputStream = mBSocket.inputStream
             }
         }
         return isConnected
