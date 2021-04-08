@@ -8,6 +8,8 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.lang.Exception
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 
 private const val TAG = "Pilot_Bluetooth"
@@ -78,18 +80,27 @@ class Bluetooth : Runnable {
     }
 
     override fun run() {
+
         val readBuffer = ByteArray(READ_BUFFER_SIZE)
         var bytes = 0
         while (!Thread.currentThread().isInterrupted && isConnected) {
             try {
-                bytes = mInputStream!!.read(readBuffer, bytes, READ_BUFFER_SIZE - bytes)
+                bytes = mInputStream!!.read(readBuffer)
+                Log.d(TAG, String(readBuffer, Charsets.UTF_8).take(bytes))
             } catch (e: IOException) {
                 e.printStackTrace()
             }
         }
-        isConnected = false
-        mBSocket.inputStream.close()
-        mBSocket.outputStream.close()
-        mBSocket.close()
+        if(isConnected) {
+            mBSocket.inputStream.close()
+            mBSocket.outputStream.close()
+            mBSocket.close()
+            isConnected = false
+        }
     }
 }
+
+//To do
+//DO ByteArray and ByteBuffer optimizations
+//Convert cam data and info to binary (little endian and big endian differentiate)
+//Merge cam data and info into single packet
