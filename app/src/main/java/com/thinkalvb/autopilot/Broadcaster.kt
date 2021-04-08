@@ -8,9 +8,12 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.SocketException
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
 
 private const val TAG = "Pilot_Broadcaster"
+private const val MAX_DATA_SIZE = 500
 private const val DATA_BROADCAST_INTERVAL = 100
 private const val FRAME_BROADCAST_INTERVAL = 40
 private const val PROBE_INTERVAL = 5000
@@ -35,22 +38,39 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
             mUdpSocket = DatagramSocket()
             mUdpSocket.soTimeout = RECEIVE_TIMEOUT
             Log.d(TAG, "Broadcaster Started on port ${mUdpSocket.localPort}")
-        } catch (e: SocketException) {
-            Log.d(TAG, "Socket Exception $e")
-        } catch (e: IOException) {
-            Log.d(TAG,"IO Exception $e")
         } catch (e: Exception) {
             Log.d(TAG,"Exception $e")
+            return
         }
-        if(!mUdpSocket.isConnected) return
 
         while(!Thread.currentThread().isInterrupted)
         {
-            updateFlags()
+            //updateFlags()
             try{
-                if(mRequiresDataBroadcast) broadcastData()
-                if(mRequiresFrameBroadcast) broadcastFrame()
-                receiveData()
+
+                // experimental
+                val x: Short = 180
+                val y: Short = 0
+                val z: Short = -180
+                val prefix: Byte = 'O'.toByte()
+                var buffer = ByteBuffer.allocate(10)
+                buffer.order(ByteOrder.LITTLE_ENDIAN)
+                buffer.put(prefix)
+                buffer.putShort(x)
+                buffer.putShort(y)
+                buffer.putShort(z)
+
+                val packet = DatagramPacket(buffer.array(), buffer.position(), mDestinationIP, mDestinationPort)
+                mUdpSocket.send(packet)
+                buffer.clear()
+                Thread.sleep(1000)
+
+
+
+
+                //if(mRequiresDataBroadcast) broadcastData()
+                //if(mRequiresFrameBroadcast) broadcastFrame()
+                //receiveData()
             } catch (e: SocketException) {
                 Log.d(TAG, "Socket Exception $e")
             } catch (e: IOException) {
@@ -77,11 +97,10 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
 
     private fun broadcastData() {
         mLastDataBroadcastTime = System.currentTimeMillis()
-        if(mDataQueue.isNotEmpty()){
-            var dataBuffer = ByteArray(0)
-            while (mDataQueue.isNotEmpty()) dataBuffer += mDataQueue.poll()
-            val packet = DatagramPacket(dataBuffer, dataBuffer.size, mDestinationIP, mDestinationPort)
+        if(mDataBuffer.remaining() != MAX_DATA_SIZE) {
+            val packet = DatagramPacket(mDataBuffer.array(), mDataBuffer.position(), mDestinationIP, mDestinationPort)
             mUdpSocket.send(packet)
+            mDataBuffer.clear()
         }
     }
 
@@ -112,23 +131,19 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
                 mLastProbeSendTime = currentTime
             }
         }
-
-        if(needToBroadcast) Log.d(TAG, "Need To Broadcast")
-        if (mRequiresFrameBroadcast) Log.d(TAG, "Need To Broadcast Frame")
-        if (mRequiresDataBroadcast) Log.d(TAG, "Need To Broadcast Data")
     }
 
     companion object{
-        private var mDataQueue: ConcurrentLinkedQueue<ByteArray> = ConcurrentLinkedQueue()
         private var mFrameQueue: ConcurrentLinkedQueue<ByteArray> = ConcurrentLinkedQueue()
+        private var mDataBuffer = ByteBuffer.allocate(MAX_DATA_SIZE).order(ByteOrder.LITTLE_ENDIAN)
         var needToBroadcast = false
 
         fun sendData(data: String) {
-            if(mDataQueue.size > 10) {
+            if(data.length > mDataBuffer.remaining()) {
                 Log.d(TAG, "Unsent data - Data buffer cleared")
-                mDataQueue.clear()
+                mDataBuffer.clear()
             }
-            mDataQueue.add(data.toByteArray())
+            mDataBuffer.put(data.toByteArray())
         }
 
         fun sendFrame(bitmap: Bitmap) {
@@ -146,3 +161,14 @@ class Broadcaster (private val mDestinationIP: InetAddress, private val mDestina
         }
     }
 }
+
+/* Binary broadcast
+                    byte[] receivedData = _UDPserver.Receive(ref _IPendpoint);
+                    if(receivedData[0] == 'O')
+                    {
+                        short x = BitConverter.ToInt16(receivedData, 1);
+                        short y = BitConverter.ToInt16(receivedData, 3);
+                        short z = BitConverter.ToInt16(receivedData, 5);
+                        Debug.WriteLine("Value of X:" + x.ToString() + " y: " + y.ToString() + " z:" + z.ToString());
+                    }
+ */
