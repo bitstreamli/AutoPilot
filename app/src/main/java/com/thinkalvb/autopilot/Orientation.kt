@@ -7,6 +7,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.math.roundToInt
 
 private const val TAG = "Pilot_Orientation"
@@ -17,6 +19,7 @@ class Orientation(activity: Activity) : SensorEventListener {
     private var mOrientation: IntArray = IntArray(3)
     private var mSensorManager: SensorManager = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private var mGyroscope: Sensor? = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+    private var mBroadcastBuffer = ByteBuffer.allocate((Short.SIZE_BYTES * 3) + 1).order(ByteOrder.LITTLE_ENDIAN)
 
     init {
         if(mGyroscope != null) {
@@ -69,14 +72,15 @@ class Orientation(activity: Activity) : SensorEventListener {
 
     private fun broadcastOrientation() {
         if(Broadcaster.needToBroadcast){
-            var orientationStr = "\tORT "
-            orientationStr += mOrientation[0].toString() + " "
-            orientationStr += mOrientation[1].toString() + " "
-            orientationStr += mOrientation[2].toString() + "\t"
+            mBroadcastBuffer.clear()
+            mBroadcastBuffer.put('O'.toByte())
+            mBroadcastBuffer.putShort(mOrientation[0].toShort())
+            mBroadcastBuffer.putShort(mOrientation[1].toShort())
+            mBroadcastBuffer.putShort(mOrientation[2].toShort())
 
-            Broadcaster.sendData(orientationStr)
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG, orientationStr)
+            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
+            Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }
 

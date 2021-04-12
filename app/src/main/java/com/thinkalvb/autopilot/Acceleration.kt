@@ -7,6 +7,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 private const val TAG = "Pilot_Acceleration"
 
@@ -16,6 +18,7 @@ class Acceleration(activity: Activity) : SensorEventListener {
     private var mAcceleration: IntArray = IntArray(3)
     private var mSensorManager: SensorManager = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private var mAccelerometer: Sensor? = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
+    private var mBroadcastBuffer = ByteBuffer.allocate((Short.SIZE_BYTES * 3) + 1).order(ByteOrder.LITTLE_ENDIAN)
 
     init {
         if(mAccelerometer != null) {
@@ -57,14 +60,15 @@ class Acceleration(activity: Activity) : SensorEventListener {
 
     private fun broadcastAcceleration() {
         if(Broadcaster.needToBroadcast) {
-            var accelerationStr = "\tACC "
-            accelerationStr += mAcceleration[0].toString() + " "
-            accelerationStr += mAcceleration[1].toString() + " "
-            accelerationStr += mAcceleration[2].toString() + "\t"
+            mBroadcastBuffer.clear()
+            mBroadcastBuffer.put('A'.toByte())
+            mBroadcastBuffer.putShort(mAcceleration[0].toShort())
+            mBroadcastBuffer.putShort(mAcceleration[1].toShort())
+            mBroadcastBuffer.putShort(mAcceleration[2].toShort())
 
-            Broadcaster.sendData(accelerationStr)
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG, accelerationStr)
+            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
+            Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }
 

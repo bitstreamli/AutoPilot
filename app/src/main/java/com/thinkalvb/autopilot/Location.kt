@@ -6,7 +6,10 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Looper
 import android.util.Log
+import java.lang.Double
 import com.google.android.gms.location.*
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 private const val TAG = "Pilot_Location"
 
@@ -17,6 +20,7 @@ class Location(activity: Activity) {
     private lateinit var mFusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var mLocationRequest: LocationRequest
     private lateinit var mLocationCallback: LocationCallback
+    private var mBroadcastBuffer = ByteBuffer.allocate((Double.SIZE * 3) + 1).order(ByteOrder.LITTLE_ENDIAN)
 
     init {
         if(activity.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) {
@@ -53,14 +57,15 @@ class Location(activity: Activity) {
 
     private fun broadcastLocation() {
         if(Broadcaster.needToBroadcast){
-            var locationStr = "\tLOC "
-            locationStr += mPosition[0].toString() + " "
-            locationStr += mPosition[1].toString() + " "
-            locationStr += mPosition[2].toString() + "\t"
+            mBroadcastBuffer.clear()
+            mBroadcastBuffer.put('L'.toByte())
+            mBroadcastBuffer.putDouble(mPosition[0])
+            mBroadcastBuffer.putDouble(mPosition[1])
+            mBroadcastBuffer.putDouble(mPosition[2])
 
-            Broadcaster.sendData(locationStr)
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG, locationStr)
+            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
+            Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }
 
