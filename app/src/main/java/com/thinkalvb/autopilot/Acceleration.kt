@@ -67,7 +67,6 @@ class Acceleration(activity: Activity) : SensorEventListener {
             mBroadcastBuffer.putShort(mAcceleration[2].toShort())
 
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
             Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }

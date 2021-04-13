@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Looper
 import android.util.Log
-import java.lang.Double
 import com.google.android.gms.location.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -20,7 +19,7 @@ class Location(activity: Activity) {
     private lateinit var mFusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var mLocationRequest: LocationRequest
     private lateinit var mLocationCallback: LocationCallback
-    private var mBroadcastBuffer = ByteBuffer.allocate((Double.SIZE * 3) + 1).order(ByteOrder.LITTLE_ENDIAN)
+    private var mBroadcastBuffer = ByteBuffer.allocate((Double.SIZE_BYTES * 3) + 1).order(ByteOrder.LITTLE_ENDIAN)
 
     init {
         if(activity.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) {
@@ -64,7 +63,6 @@ class Location(activity: Activity) {
             mBroadcastBuffer.putDouble(mPosition[2])
 
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
             Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }

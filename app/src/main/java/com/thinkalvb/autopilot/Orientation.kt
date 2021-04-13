@@ -79,7 +79,6 @@ class Orientation(activity: Activity) : SensorEventListener {
             mBroadcastBuffer.putShort(mOrientation[2].toShort())
 
             mLastBroadcastTime = System.currentTimeMillis()
-            Log.d(TAG,"Packet Size = ${mBroadcastBuffer.position()}")
             Broadcaster.sendData(mBroadcastBuffer.array())
         }
     }
