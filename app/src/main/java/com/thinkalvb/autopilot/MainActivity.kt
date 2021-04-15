@@ -5,9 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -23,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mAcceleration: Acceleration
     private lateinit var mLocation: Location
     private lateinit var mCamera: Camera
+    private lateinit var mBluetooth: Bluetooth
 
     private var isRunning = false
 
@@ -35,6 +34,7 @@ class MainActivity : AppCompatActivity() {
         mAcceleration = Acceleration(this)
         mCamera = Camera(this)
         mLocation = Location(this)
+        mBluetooth = Bluetooth()
 
         val startButton: Button = findViewById(R.id.start_button)
         val stopButton: Button = findViewById(R.id.stop_button)
@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
                 isRunning = false
             } else Toast.makeText(applicationContext, "No service is running", Toast.LENGTH_SHORT).show()
         }
+        refreshDeviceList()
     }
 
     private fun stopServices() {
@@ -86,15 +87,21 @@ class MainActivity : AppCompatActivity() {
         if(!mLocation.isEnabled(this)) Toast.makeText(applicationContext, "Enable GPS for Location", Toast.LENGTH_SHORT).show()
     }
 
+    private fun refreshDeviceList()
+    {
+        val deviceSpinner: Spinner = findViewById(R.id.device_spinner)
+        val devices = Bluetooth.getDevices()
+        val spinnerArray: MutableList<String> = ArrayList()
+        devices.forEach { device-> spinnerArray.add(device.name)}
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, spinnerArray)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        deviceSpinner.adapter = adapter
+    }
+
     private fun startNetworkService(portNumber: Int, ip: InetAddress) {
         val broadcaster = Broadcaster(ip, portNumber)
         mUDPThread = Thread(broadcaster)
         mUDPThread.start()
-
-        val bluetooth = Bluetooth()
-        bluetooth.startBluetooth()
-        mBluetoothThread = Thread(bluetooth)
-        mBluetoothThread.start()
     }
 
     private fun stopNetworkService(){
