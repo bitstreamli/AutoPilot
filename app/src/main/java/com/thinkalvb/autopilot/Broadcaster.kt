@@ -19,15 +19,10 @@ private const val TAG = "Pilot_Broadcaster"
 private const val MAX_DATA_SIZE = 65507
 private const val DATA_BROADCAST_INTERVAL = 40
 private const val PROBE_INTERVAL = 10000L
-private const val RECEIVE_TIMEOUT = 5
-private const val READ_BUFFER_SIZE = 128
 
 class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinationPort: Int) : Runnable {
     private lateinit var mUdpSocket: DatagramSocket
-
-    private var mLastDataBroadcastTime: Long = 0
     private var mLastReceiveTime: Long = 0
-    private var mRequiresDataBroadcast: Boolean = false
 
     override fun run() {
         val handler = Handler(Looper.getMainLooper())
@@ -39,7 +34,6 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
                     Log.d(TAG,"Probing for server")
                     needToBroadcast = false
                     sendData("P".toByteArray(Charsets.UTF_8))
-                    mLastReceiveTime = currentTime
                 } else needToBroadcast = true
                 handler.postDelayed(this, PROBE_INTERVAL)
             }
@@ -47,7 +41,8 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
 
         try {
             mUdpSocket = DatagramSocket()
-            mUdpSocket.soTimeout = RECEIVE_TIMEOUT
+            mUdpSocket.soTimeout = DATA_BROADCAST_INTERVAL
+
             Log.d(TAG, "Broadcaster Started on port ${mUdpSocket.localPort}")
         } catch (e: Exception) {
             Log.d(TAG, "Exception $e")
@@ -58,12 +53,8 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
         Log.d(TAG,"Probing for server")
         while(!Thread.currentThread().isInterrupted)
         {
-            updateFlags()
             try{
-                if(mRequiresDataBroadcast) {
-                    broadcastData()
-                    mLastDataBroadcastTime = System.currentTimeMillis()
-                }
+                if(mDataSendBuffer.position() != 0) broadcastData()
                 receiveData()
             } catch (e: SocketException) {
                 Log.d(TAG, "Socket Exception $e")
@@ -77,47 +68,42 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
     }
 
     private fun receiveData() {
-        val dataBuffer = ByteArray(READ_BUFFER_SIZE)
-        val incomingPacket = DatagramPacket(dataBuffer, dataBuffer.size)
+        val incomingPacket = DatagramPacket(mDataReceiveBuffer.array(), MAX_DATA_SIZE)
         mUdpSocket.receive(incomingPacket)
         mLastReceiveTime = System.currentTimeMillis()
-        processData(dataBuffer, incomingPacket.length)
+        processData(incomingPacket.length)
     }
 
-    private fun processData(dataBuffer: ByteArray, packetSize: Int) {
-        val incomingString = String(dataBuffer, Charsets.UTF_8).take(packetSize)
-        Log.d(TAG, incomingString)
+    private fun processData(packetSize: Int) {
+        val prefix = mDataReceiveBuffer.get(0)
+        if(prefix.toChar() == 'R'){
+            val rpm = mDataReceiveBuffer.getShort(1)
+            Log.d(TAG, "RPM = $rpm")
+        }
+        mDataReceiveBuffer.clear()
     }
 
     private fun broadcastData() {
         mBufferLock.lock()
-        mLastDataBroadcastTime = System.currentTimeMillis()
-        if(mDataBuffer.position() != 0) {
-            val packet = DatagramPacket(mDataBuffer.array(), mDataBuffer.position(), mDestinationIP, mDestinationPort)
-            mUdpSocket.send(packet)
-            mDataBuffer.clear()
-        }
+        val packet = DatagramPacket(mDataSendBuffer.array(), mDataSendBuffer.position(), mDestinationIP, mDestinationPort)
+        mUdpSocket.send(packet)
+        mDataSendBuffer.clear()
         mBufferLock.unlock()
     }
 
-    private fun updateFlags() {
-        val currentTime = System.currentTimeMillis()
-        val timeTillLastDataBroadcast = currentTime - mLastDataBroadcastTime
-        mRequiresDataBroadcast = timeTillLastDataBroadcast > DATA_BROADCAST_INTERVAL
-    }
-
     companion object{
-        private var mDataBuffer = ByteBuffer.allocate(MAX_DATA_SIZE).order(ByteOrder.LITTLE_ENDIAN)
+        private var mDataSendBuffer: ByteBuffer = ByteBuffer.allocate(MAX_DATA_SIZE).order(ByteOrder.LITTLE_ENDIAN)
+        private var mDataReceiveBuffer: ByteBuffer = ByteBuffer.allocate(MAX_DATA_SIZE).order(ByteOrder.LITTLE_ENDIAN)
         private var mBufferLock: Lock = ReentrantLock()
         var needToBroadcast = false
 
         fun sendData(data: ByteArray){
             mBufferLock.lock()
-            if(mDataBuffer.remaining() < data.size) {
-                mDataBuffer.clear()
+            if(mDataSendBuffer.remaining() < data.size) {
+                mDataSendBuffer.clear()
                 Log.d(TAG, "Unsent data - Data buffer cleared")
             }
-            mDataBuffer.put(data)
+            mDataSendBuffer.put(data)
             mBufferLock.unlock()
         }
 
@@ -127,13 +113,13 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
             val stream = ByteArrayOutputStream()
             broadcastFrame.compress(Bitmap.CompressFormat.JPEG, 90, stream)
             val imageDataSize = stream.size() + Short.SIZE_BYTES + 1
-            if(mDataBuffer.remaining() < imageDataSize) {
-                mDataBuffer.clear()
+            if(mDataSendBuffer.remaining() < imageDataSize) {
+                mDataSendBuffer.clear()
                 Log.d(TAG, "Unsent data - Data buffer cleared")
             }
-            mDataBuffer.put('C'.toByte())
-            mDataBuffer.putShort(stream.size().toShort())
-            mDataBuffer.put(stream.toByteArray())
+            mDataSendBuffer.put('C'.toByte())
+            mDataSendBuffer.putShort(stream.size().toShort())
+            mDataSendBuffer.put(stream.toByteArray())
             mBufferLock.unlock()
         }
     }
