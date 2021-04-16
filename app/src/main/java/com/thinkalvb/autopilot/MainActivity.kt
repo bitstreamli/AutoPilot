@@ -1,6 +1,7 @@
 package com.thinkalvb.autopilot
 
 import android.Manifest
+import android.bluetooth.BluetoothDevice
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -23,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mCamera: Camera
     private lateinit var mBluetooth: Bluetooth
 
+    private lateinit var mDeviceSpinner: Spinner
+    private var mDeviceList: Set<BluetoothDevice> = emptySet()
     private var isRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,6 +33,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         checkAndRequestPermissions()
 
+        mDeviceSpinner = findViewById(R.id.device_spinner)
         mOrientation = Orientation(this)
         mAcceleration = Acceleration(this)
         mCamera = Camera(this)
@@ -65,7 +69,25 @@ class MainActivity : AppCompatActivity() {
                 isRunning = false
             } else Toast.makeText(applicationContext, "No service is running", Toast.LENGTH_SHORT).show()
         }
-        refreshDeviceList()
+
+        val refreshButton: ImageButton = findViewById(R.id.refersh_button)
+        refreshButton.setOnClickListener { refreshDeviceList() }
+        val connectButton: ImageButton = findViewById(R.id.connect_button)
+        connectButton.setOnClickListener {
+            if(mDeviceList.isEmpty()) {
+                Toast.makeText(applicationContext, "No paired devices (try refreshing)", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val connected = Bluetooth.connect(mDeviceList.elementAt(mDeviceSpinner.selectedItemPosition))
+            if(!connected) {
+                Toast.makeText(applicationContext, "Bluetooth connection failed", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            Log.d(TAG, "${mDeviceList.elementAt(mDeviceSpinner.selectedItemPosition).name} Connected")
+            Toast.makeText(applicationContext, "Device Connected", Toast.LENGTH_SHORT).show()
+            mBluetoothThread = Thread(mBluetooth)
+            mBluetoothThread.start()
+        }
     }
 
     private fun stopServices() {
@@ -89,13 +111,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshDeviceList()
     {
-        val deviceSpinner: Spinner = findViewById(R.id.device_spinner)
-        val devices = Bluetooth.getDevices()
+        mDeviceList = Bluetooth.getDevices()
         val spinnerArray: MutableList<String> = ArrayList()
-        devices.forEach { device-> spinnerArray.add(device.name)}
+        mDeviceList.forEach { device-> spinnerArray.add(device.name)}
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, spinnerArray)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        deviceSpinner.adapter = adapter
+        mDeviceSpinner.adapter = adapter
     }
 
     private fun startNetworkService(portNumber: Int, ip: InetAddress) {

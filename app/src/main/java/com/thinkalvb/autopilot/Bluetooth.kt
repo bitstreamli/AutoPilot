@@ -22,57 +22,20 @@ class Bluetooth : Runnable {
         }
     }
 
-    fun connect(device: BluetoothDevice): Boolean {
-        mBluetoothAdapter!!.cancelDiscovery()
-        try{
-            mBSocket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID)
-            mBSocket.connect()
-            isConnected = true
-            Log.d(TAG, "Bluetooth connected")
-        } catch (e: IOException) {
-            Log.d(TAG, "IO Exception $e")
-            try{
-                Log.d(TAG, "Starting bluetooth connect fallback strategy")
-                val clazz = mBSocket.remoteDevice.javaClass
-                val paramTypes = arrayOf<Class<*>>(Integer.TYPE)
-                val m = clazz.getMethod("createRfcommSocket", *paramTypes)
-                val fallbackSocket = m.invoke(mBSocket.remoteDevice, Integer.valueOf(1)) as BluetoothSocket
-                fallbackSocket.connect()
-                mBSocket = fallbackSocket
-                isConnected = true
-                Log.d(TAG, "Bluetooth connected")
-            } catch (e: Exception) {
-                Log.d(TAG, "IO Exception $e")
-                return false
-            }
-        }
-        mOutputStream = mBSocket.outputStream
-        mInputStream = mBSocket.inputStream
-        return true
-    }
-
-    fun write(data: ByteArray) {
-        if(isConnected) mOutputStream!!.write(data)
-    }
-
     override fun run() {
         val readBuffer = ByteArray(READ_BUFFER_SIZE)
         while (!Thread.currentThread().isInterrupted && isConnected) {
             try {
-                if(mInputStream!!.available() > 0){
-                    val bytes = mInputStream!!.read(readBuffer)
-                    Log.d(TAG, String(readBuffer, Charsets.UTF_8).take(bytes))
-                }
+                val bytes = mInputStream!!.read(readBuffer)
+                Log.d(TAG, String(readBuffer, Charsets.UTF_8).take(bytes))
             } catch (e: IOException) {
-                e.printStackTrace()
+                Log.d(TAG, "Exception $e")
+                isConnected = false
             }
         }
-        if(isConnected) {
-            mBSocket.inputStream.close()
-            mBSocket.outputStream.close()
-            mBSocket.close()
-            isConnected = false
-        }
+        mBSocket.inputStream.close()
+        mBSocket.outputStream.close()
+        mBSocket.close()
     }
 
     companion object{
@@ -85,6 +48,10 @@ class Bluetooth : Runnable {
         private var mOutputStream: OutputStream? = null
         private var mInputStream: InputStream? = null
 
+        fun write(data: ByteArray) {
+            if(isConnected) mOutputStream!!.write(data)
+        }
+
         fun getDevices(): Set<BluetoothDevice> {
             if(!isAvailable)
                 return emptySet()
@@ -92,6 +59,38 @@ class Bluetooth : Runnable {
             val bondedDevices: Set<BluetoothDevice> = mBluetoothAdapter!!.bondedDevices
             Log.d(TAG, "${bondedDevices.size} Paired bluetooth devices found")
             return  bondedDevices
+        }
+
+        fun connect(device: BluetoothDevice): Boolean {
+            if(isConnected)
+                return true
+
+            mBluetoothAdapter!!.cancelDiscovery()
+            try{
+                mBSocket = device.createRfcommSocketToServiceRecord(MY_UUID)
+                mBSocket.connect()
+                isConnected = true
+                Log.d(TAG, "Bluetooth connected")
+            } catch (e: IOException) {
+                Log.d(TAG, "IO Exception $e")
+                try{
+                    Log.d(TAG, "Starting bluetooth connect fallback strategy")
+                    val clazz = mBSocket.remoteDevice.javaClass
+                    val paramTypes = arrayOf<Class<*>>(Integer.TYPE)
+                    val m = clazz.getMethod("createRfcommSocket", *paramTypes)
+                    val fallbackSocket = m.invoke(mBSocket.remoteDevice, Integer.valueOf(1)) as BluetoothSocket
+                    fallbackSocket.connect()
+                    mBSocket = fallbackSocket
+                    isConnected = true
+                    Log.d(TAG, "Bluetooth connected")
+                } catch (e: Exception) {
+                    Log.d(TAG, "IO Exception $e")
+                    return false
+                }
+            }
+            mOutputStream = mBSocket.outputStream
+            mInputStream = mBSocket.inputStream
+            return true
         }
     }
 }

@@ -70,15 +70,31 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
     private fun receiveData() {
         val incomingPacket = DatagramPacket(mDataReceiveBuffer.array(), MAX_DATA_SIZE)
         mUdpSocket.receive(incomingPacket)
+
         mLastReceiveTime = System.currentTimeMillis()
+        needToBroadcast = true
         processData(incomingPacket.length)
     }
 
     private fun processData(packetSize: Int) {
-        val prefix = mDataReceiveBuffer.get(0)
-        if(prefix.toChar() == 'R'){
-            val rpm = mDataReceiveBuffer.getShort(1)
-            Log.d(TAG, "RPM = $rpm")
+        var index = 0
+        while(index < packetSize){
+            when (mDataReceiveBuffer.get(index).toChar()) {
+                'R' -> {
+                    index++
+                    NavController.updateRPM(mDataReceiveBuffer.getShort(1))
+                    index += Short.SIZE_BYTES
+                }
+                'S' -> {
+                    index++
+                    NavController.updateSteer(mDataReceiveBuffer.getShort(1))
+                    index += Short.SIZE_BYTES
+                }
+                else -> {
+                    Log.d(TAG, "Protocol parse error")
+                    break
+                }
+            }
         }
         mDataReceiveBuffer.clear()
     }

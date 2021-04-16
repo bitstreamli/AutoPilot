@@ -13,7 +13,7 @@
         android:layout_marginStart="20dp"
         android:text="@string/ip_address_txt"
         android:textColor="@color/black"
-        android:textSize="18sp"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/ip_address"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/ip_address" />
@@ -25,7 +25,7 @@
         android:layout_marginStart="20dp"
         android:text="@string/port_number_txt"
         android:textColor="@color/black"
-        android:textSize="18sp"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/port_number"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/port_number" />
@@ -51,7 +51,8 @@
         android:inputType="number"
         android:text="@string/port_number"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ip_address" />
+        app:layout_constraintTop_toBottomOf="@+id/ip_address"
+        android:autofillHints="" />
 
     <Button
         android:id="@+id/start_button"
@@ -77,13 +78,31 @@
 
     <Spinner
         android:id="@+id/device_spinner"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
         android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toTopOf="@+id/start_button"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/refersh_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        app:layout_constraintBottom_toBottomOf="@+id/device_spinner"
+        app:layout_constraintStart_toEndOf="@+id/device_spinner"
+        app:layout_constraintTop_toTopOf="@+id/device_spinner"
+        app:srcCompat="@android:drawable/stat_notify_sync" />
+
+    <ImageButton
+        android:id="@+id/connect_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        app:layout_constraintBottom_toBottomOf="@+id/refersh_button"
+        app:layout_constraintStart_toEndOf="@+id/refersh_button"
+        app:layout_constraintTop_toTopOf="@+id/refersh_button"
+        app:srcCompat="@android:drawable/stat_sys_data_bluetooth" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
