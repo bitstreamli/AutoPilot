@@ -77,17 +77,36 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
     }
 
     private fun processData(packetSize: Int) {
+        val signalSize = Byte.SIZE_BYTES + (3 * Short.SIZE_BYTES)
+        val signal = ByteArray(signalSize)
         var index = 0
+
         while(index < packetSize){
             when (mDataReceiveBuffer.get(index).toChar()) {
-                'R' -> {
+                'A' -> {
+                    mDataReceiveBuffer.get(signal, 0, signalSize)
+
                     index++
-                    NavController.updateRPM(mDataReceiveBuffer.getShort(1))
+                    val reqAcceleration = ShortArray(3)
+                    reqAcceleration[0] = mDataReceiveBuffer.getShort(index)
+                    index += Short.SIZE_BYTES
+                    reqAcceleration[1] = mDataReceiveBuffer.getShort(index)
+                    index += Short.SIZE_BYTES
+                    reqAcceleration[2] = mDataReceiveBuffer.getShort(index)
+                    NavController.updateAcceleration(reqAcceleration,signal)
                     index += Short.SIZE_BYTES
                 }
-                'S' -> {
+                'O' -> {
+                    mDataReceiveBuffer.get(signal, 0, signalSize)
+
                     index++
-                    NavController.updateSteer(mDataReceiveBuffer.getShort(1))
+                    val reqOrientation = ShortArray(3)
+                    reqOrientation[0] = mDataReceiveBuffer.getShort(index)
+                    index += Short.SIZE_BYTES
+                    reqOrientation[1] = mDataReceiveBuffer.getShort(index)
+                    index += Short.SIZE_BYTES
+                    reqOrientation[2] = mDataReceiveBuffer.getShort(index)
+                    NavController.updateOrientation(reqOrientation,signal)
                     index += Short.SIZE_BYTES
                 }
                 else -> {
@@ -129,14 +148,12 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
             val stream = ByteArrayOutputStream()
             broadcastFrame.compress(Bitmap.CompressFormat.JPEG, 90, stream)
             val imageDataSize = stream.size() + Short.SIZE_BYTES + 1
-            if(mDataSendBuffer.remaining() < imageDataSize) {
-                mDataSendBuffer.clear()
-                Log.d(TAG, "Unsent data - Data buffer cleared")
+            if(mDataSendBuffer.remaining() > imageDataSize) {
+                mDataSendBuffer.put('C'.toByte())
+                mDataSendBuffer.putShort(stream.size().toShort())
+                mDataSendBuffer.put(stream.toByteArray())
+                mBufferLock.unlock()
             }
-            mDataSendBuffer.put('C'.toByte())
-            mDataSendBuffer.putShort(stream.size().toShort())
-            mDataSendBuffer.put(stream.toByteArray())
-            mBufferLock.unlock()
         }
     }
 }

@@ -6,25 +6,22 @@ private const val TAG = "Pilot_NavController"
 
 class NavController {
     companion object{
-        private var mRPM: Short = 0
-        private var mSteerAngle: Short = 0
+        private var mAcceleration: ShortArray = ShortArray(3)
+        private var mOrientation: ShortArray = ShortArray(3)
 
         fun takeOver() {
-            // control signal lost - take over the control-
         }
 
-        fun updateRPM(rpm: Short) {
-            mRPM = rpm
-            Log.d(TAG, "New RPM $mRPM")
-
-            // do something to adjust rpm of the Falcon
+        fun updateAcceleration(reqAcceleration: ShortArray, signalData: ByteArray) {
+            mAcceleration = reqAcceleration
+            Log.d(TAG, "Required acceleration X: ${mAcceleration[0]} Y: ${mAcceleration[1] } Z: ${mAcceleration[2] } ")
+            Bluetooth.write(signalData)
         }
 
-        fun updateSteer(steerAngle: Short) {
-            mSteerAngle = steerAngle
-            Log.d(TAG, "New Steer Angle $mSteerAngle")
-            // do something to adjust steer of the Falcon
+        fun updateOrientation(reqOrientation: ShortArray, signalData: ByteArray) {
+            mOrientation = reqOrientation
+            Log.d(TAG, "Required alignment Yaw: ${mOrientation[0]} Pitch: ${mOrientation[1] } Roll: ${mOrientation[2] } ")
+            Bluetooth.write(signalData)
         }
-
     }
 }
