@@ -152,8 +152,8 @@ class Broadcaster(private val mDestinationIP: InetAddress, private val mDestinat
                 mDataSendBuffer.put('C'.toByte())
                 mDataSendBuffer.putShort(stream.size().toShort())
                 mDataSendBuffer.put(stream.toByteArray())
-                mBufferLock.unlock()
             }
+            mBufferLock.unlock()
         }
     }
 }
